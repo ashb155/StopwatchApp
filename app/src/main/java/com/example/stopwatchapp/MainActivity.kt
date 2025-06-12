@@ -4,12 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -29,6 +24,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             var timeElapsed by remember { mutableStateOf(0L) }
+            var isRunning by remember { mutableStateOf(false) }
+
             StopwatchAppTheme {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -39,7 +36,13 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .padding(paddingValues)
                     ) {
-                        ModernStopwatch(timeElapsed, onTimerUpdated = { timeElapsed++}, resetTimer = {timeElapsed = 0L})
+                        ModernStopwatch(
+                            timeElapsed = timeElapsed,
+                            isRunning = isRunning,
+                            setIsRunning = { isRunning = it },
+                            onTimerUpdated = { timeElapsed+=10L },
+                            resetTimer = { timeElapsed = 0L }
+                        )
                     }
                 }
             }
@@ -48,31 +51,38 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun ModernStopwatch(timeElapsed: Long, onTimerUpdated: () -> Unit, resetTimer: () -> Unit) {
-
-    var isRunning by remember { mutableStateOf(false) }
+fun ModernStopwatch(
+    timeElapsed: Long,
+    isRunning: Boolean,
+    setIsRunning: (Boolean) -> Unit,
+    onTimerUpdated: () -> Unit,
+    resetTimer: () -> Unit
+) {
     var colorIndex by remember { mutableStateOf(0) }
     val infiniteTransition = rememberInfiniteTransition()
 
     val discoColors = listOf(
-        Color(0xFFE91E63), // Pink
-        Color(0xFF3F51B5), // Indigo
-        Color(0xFFFFC107), // Amber
-        Color(0xFF4CAF50), // Green
-        Color(0xFFFF5722), // Deep Orange
-        Color(0xFF00BCD4), // Cyan
+        Color(0xFFE91E63),
+        Color(0xFF3F51B5),
+        Color(0xFFFFC107),
+        Color(0xFF4CAF50),
+        Color(0xFFFF5722),
+        Color(0xFF00BCD4)
     )
+
     val animatedBackgroundColor by animateColorAsState(
         targetValue = if (isRunning) discoColors[colorIndex % discoColors.size] else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-        animationSpec = tween(durationMillis = 600),
+        animationSpec = tween(durationMillis = 1000)
     )
+
     val animatedBackgroundColor1 by animateColorAsState(
-        targetValue = if (isRunning) discoColors[colorIndex % discoColors.size].copy(alpha=0.6f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-        animationSpec = tween(durationMillis = 600),
+        targetValue = if (isRunning) discoColors[colorIndex % discoColors.size].copy(alpha = 0.6f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+        animationSpec = tween(durationMillis = 1000)
     )
+
     val animatedTextColor by animateColorAsState(
         targetValue = if (isRunning) Color.White else MaterialTheme.colorScheme.primary,
-        animationSpec = tween(durationMillis = 600),
+        animationSpec = tween(durationMillis = 1000)
     )
 
     val scale by infiniteTransition.animateFloat(
@@ -83,17 +93,26 @@ fun ModernStopwatch(timeElapsed: Long, onTimerUpdated: () -> Unit, resetTimer: (
             repeatMode = RepeatMode.Reverse
         )
     )
+
     LaunchedEffect(isRunning) {
+        var frameCounter=0
         while (isRunning) {
-            delay(1000L)
-           onTimerUpdated()
-            colorIndex++
+            delay(10L)
+            onTimerUpdated()
+            frameCounter+=10
+            if(frameCounter>=1000){
+                colorIndex++
+                frameCounter=0
+            }
+
         }
     }
 
-    val minutes = timeElapsed / 60
-    val seconds = timeElapsed % 60
-    val formattedTime = String.format("%02d:%02d", minutes, seconds)
+    val minutes = (timeElapsed /1000)/ 60
+    val seconds = (timeElapsed/1000) % 60
+    val mills=(timeElapsed%1000)/10
+    val formattedTime = String.format("%02d:%02d:%02d", minutes, seconds,mills)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -101,12 +120,10 @@ fun ModernStopwatch(timeElapsed: Long, onTimerUpdated: () -> Unit, resetTimer: (
             .background(animatedBackgroundColor1),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
-    )  {
+    ) {
         MainTimer(isRunning, scale, animatedBackgroundColor, formattedTime, animatedTextColor)
-
         Spacer(modifier = Modifier.height(32.dp))
-
-        Controls(isRunning, resetTimer)
+        Controls(isRunning, setIsRunning, resetTimer)
     }
 }
 
@@ -133,7 +150,7 @@ private fun MainTimer(
     ) {
         Text(
             text = formattedTime,
-            fontSize = 60.sp,
+            fontSize = 40.sp,
             fontWeight = FontWeight.Bold,
             color = animatedTextColor
         )
@@ -141,26 +158,27 @@ private fun MainTimer(
 }
 
 @Composable
-private fun Controls(isRunning: Boolean, resetTimer: () -> Unit) {
-    var isRunning1 = isRunning
+private fun Controls(
+    isRunning: Boolean,
+    setIsRunning: (Boolean) -> Unit,
+    resetTimer: () -> Unit
+) {
     Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
         Button(
-            onClick = { isRunning1 = true },
-            enabled = !isRunning1,
+            onClick = { setIsRunning(true) },
+            enabled = !isRunning,
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary
             ),
             modifier = Modifier.size(80.dp)
         ) {
-            Text(
-                "Start", color = Color.White, fontSize = 12.sp
-            )
+            Text("Start", color = Color.White, fontSize = 12.sp)
         }
 
         Button(
-            onClick = { isRunning1 = false },
-            enabled = isRunning1,
+            onClick = { setIsRunning(false) },
+            enabled = isRunning,
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error
@@ -172,7 +190,7 @@ private fun Controls(isRunning: Boolean, resetTimer: () -> Unit) {
 
         OutlinedButton(
             onClick = {
-                isRunning1 = false
+                setIsRunning(false)
                 resetTimer()
             },
             shape = CircleShape,
