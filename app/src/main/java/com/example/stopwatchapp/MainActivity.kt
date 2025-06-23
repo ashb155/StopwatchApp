@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,12 +63,12 @@ fun ModernStopwatch(
     val infiniteTransition = rememberInfiniteTransition()
 
     val discoColors = listOf(
-        Color(0xFFE91E63),
-        Color(0xFF3F51B5),
-        Color(0xFFFFC107),
-        Color(0xFF4CAF50),
-        Color(0xFFFF5722),
-        Color(0xFF00BCD4)
+        colorResource( id = R.color.color1),
+        colorResource(id = R.color.color2),
+        colorResource(id = R.color.color3),
+        colorResource(id = R.color.color4),
+        colorResource(id = R.color.color5),
+        colorResource(id = R.color.color6)
     )
 
     val animatedBackgroundColor by animateColorAsState(
