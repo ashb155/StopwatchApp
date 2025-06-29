@@ -1,3 +1,3 @@
 # StopwatchApp
 
-Simple stopwatch designed using Kotlin
+Simple stopwatch designed using Kotlin and Jetpack Compose
